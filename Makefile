@@ -1,15 +1,17 @@
 PKGS := $(shell go list ./... | grep -v /vendor)
 GOBIN := $(GOPATH)/bin
 
-BINARY := ggi
+BINARY := goignore
+BUILDDIR := build
 PLATFORMS := windows linux darwin
 os = $(word 1, $@)
+
 VERSION ?= latest
 
 all: help
 
 $(GOBIN)/%:
-	go get -u $(REPOSITORY)
+	@go get -u $(REPOSITORY)
 
 
 .PHONY: fmt
@@ -23,29 +25,30 @@ $(GOBIN)/golint: REPOSITORY=golang.org/x/lint/golint
 .PHONY: lint
 lint: $(GOLINT) fmt ## Run golint
 	@echo "Run golint"
-	$(GOLINT) -set_exit_status ${PKGS}
+	@$(GOLINT) -set_exit_status ${PKGS}
 
   
 .PHONY: test
 test: lint ## Test
-	go test $(PKGS)
+	@echo "Run unit test"
+	@go test $(PKGS)
 
 
 .PHONY: $(PLATFORMS)
 $(PLATFORMS):
-	mkdir -p release
-	GOOS=$(os) GOARCH=amd64 go build -o release/$(BINARY)-$(VERSION)-$(os)-amd64
+	@mkdir -p $(BUILDDIR)
+	@GOOS=$(os) GOARCH=amd64 go build -o $(BUILDDIR)/$(BINARY)-$(VERSION)-$(os)-amd64 ./cmd/goignore
 
 
-.PHONY: release
-release: windows linux darwin ## Release
+.PHONY: build
+build: windows linux darwin ## Build
 
 
 .PHONY: clean
 clean: ## Cleanup everything
 	@echo "Cleanup everything"
 	@rm -rf test/tests.* test/coverage.*
-	@rm -rf release
+	@rm -rf $(BUILDDIR)
 
 	
 .PHONY: help

@@ -11,10 +11,12 @@ ggi search
 ```
 TODO:
 - [x] Makefile
-- [ ] Create .gitignore file (flag)
-- [ ] List templates (flag)
+- [x] Create .gitignore file (flag)
+- [x] List of templates (flag)
 - [ ] Search templates (flag)
+- [ ] Prettyprint list of templates
 - [ ] Create .gitignore file using templates selection (CLI)
 - [ ] Save user templates
-- [ ] Create from user templates
+- [ ] Create .gitignore from user templates
+- [ ] Recommend templates
 - [ ] Bash/Zsh autocomplete
