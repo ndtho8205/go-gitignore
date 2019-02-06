@@ -24,7 +24,13 @@ func main() {
 	}
 
 	if cmd, ok := cmds[os.Args[1]]; ok {
+		if err := goignore.Config.Read(); err != nil {
+			fmt.Println(err)
+		}
 		cmd.Handle()
+		if err := goignore.Config.Save(); err != nil {
+			fmt.Println(err)
+		}
 	} else {
 		fmt.Printf("go %s: unknown command\n", os.Args[1])
 		fmt.Printf("Run 'goignore --help' for usage.\n")
@@ -33,7 +39,6 @@ func main() {
 }
 
 func printUsage() {
-	//FIXME: print usage
 	fmt.Printf("goignore is a tool for generating a .gitignore file.\n\n")
 	fmt.Printf("Usage: \n\n\tgoignore <command> [<arguments>]\n\n")
 	fmt.Printf("The commands are:\n\n")

@@ -18,11 +18,14 @@ var CreateCommand = goignore.Command{
 }
 
 type createCommandFlags struct {
-	templatesFlag string
+	templatesFlag      string
+	customTemplateName string
 }
 
 func (flags *createCommandFlags) Apply() *flag.FlagSet {
-	return CreateCommand.NewFlags()
+	fs := CreateCommand.NewFlags()
+	fs.StringVar(&flags.customTemplateName, "save", "", "Save this as a template for future.")
+	return fs
 }
 
 func (flags *createCommandFlags) Handle() {
@@ -31,18 +34,27 @@ func (flags *createCommandFlags) Handle() {
 		flags.Usage()
 		return
 	}
-	templates := strings.TrimSpace(strings.Join(fs.Args(), ","))
-	if templates == "" {
+	if len(fs.Args()) == 0 {
 		log.Fatal("Template names not provided.")
 		flags.Usage()
 		return
 	}
-	content, err := goignore.GetGitignoreContent(templates)
+	templates := make([]string, 0)
+	for _, template := range fs.Args() {
+		templates = append(templates, strings.Split(strings.TrimSpace(template), ",")...)
+	}
+
+	if err := goignore.IsSupportedTemplates(templates); err != nil {
+		log.Fatal(err)
+	}
+
+	content, err := goignore.GetGitignoreContent(strings.Join(templates, ","))
+
 	if err != nil {
 		//TODO: Handle error
 		log.Fatal(err)
 	}
-	if err := ioutil.WriteFile(".gitignore", []byte(content), 0644); err != nil {
+	if err := ioutil.WriteFile("gitignore", []byte(content), 0644); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -50,4 +62,8 @@ func (flags *createCommandFlags) Handle() {
 func (flags *createCommandFlags) Usage() {
 	fmt.Printf("usage: goignore %s [list of using templates]:\n", CreateCommand.Name)
 	os.Exit(0)
+}
+
+func isSupportedTemplates(templates []string) {
+
 }

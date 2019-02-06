@@ -10,8 +10,12 @@ import (
 )
 
 const (
-	defaultAPIURL = "https://www.gitignore.io/api"
+	defaultAPIURL = "https://www.gitignore.io/api/"
 )
+
+func createUrl(path string) string {
+	return defaultAPIURL + url.PathEscape(path)
+}
 
 // MakeRequest makes a GET request
 func MakeRequest(url string) (string, error) {
@@ -33,7 +37,8 @@ func MakeRequest(url string) (string, error) {
 
 // GetTemplateList makes a GET request to gitignore.io API to get a list of all supported templates
 func GetTemplateList() ([]string, error) {
-	response, err := MakeRequest(defaultAPIURL + "/list")
+	fmt.Println("get list")
+	response, err := MakeRequest(createUrl("list"))
 	if err != nil {
 		return nil, err
 	}
@@ -46,6 +51,6 @@ func GetTemplateList() ([]string, error) {
 
 // GetGitignoreContent makes a GET request to gitignore.io API to get a .gitignore file content given template names
 func GetGitignoreContent(templates string) (string, error) {
-	result, err := MakeRequest(defaultAPIURL + "/" + url.PathEscape(templates))
+	result, err := MakeRequest(createUrl(templates))
 	return result, err
 }

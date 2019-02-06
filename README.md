@@ -13,10 +13,12 @@ TODO:
 - [x] Makefile
 - [x] Create .gitignore file (flag)
 - [x] List of templates (flag)
+- [x] Check supported templates
 - [ ] Search templates (flag)
 - [ ] Prettyprint list of templates
 - [ ] Create .gitignore file using templates selection (CLI)
 - [ ] Save user templates
 - [ ] Create .gitignore from user templates
 - [ ] Recommend templates
+- [ ] Update templates
 - [ ] Bash/Zsh autocomplete

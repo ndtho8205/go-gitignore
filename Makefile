@@ -3,8 +3,8 @@ GOBIN := $(GOPATH)/bin
 
 BINARY := goignore
 BUILDDIR := build
-PLATFORMS := windows linux darwin
-os = $(word 1, $@)
+PLATFORMS := linux windows darwin
+ARCH := 386 amd64
 
 VERSION ?= latest
 
@@ -34,14 +34,23 @@ test: lint ## Test
 	@go test $(PKGS)
 
 
-.PHONY: $(PLATFORMS)
-$(PLATFORMS):
-	@mkdir -p $(BUILDDIR)
-	@GOOS=$(os) GOARCH=amd64 go build -o $(BUILDDIR)/$(BINARY)-$(VERSION)-$(os)-amd64 ./cmd/goignore
+build = $GOOS=$(1) GOARCH=$(2) go build -o $(BUILDDIR)/$(BINARY)-$(VERSION)-$(1)-$(2)$(3) ./cmd/goignore
 
+linux: build/linux
+build/linux:
+	$(call build,linux,amd64,)
 
-.PHONY: build
-build: windows linux darwin ## Build
+windows: build/windows
+build/windows:
+	$(call build,windows,amd64,.exe)
+	$(call build,windows,386,.exe)
+
+darwin: build/darwin
+build/darwin:
+	$(call build,darwin,amd64,)
+
+.PHONY: deploy
+deploy: windows linux darwin ## Deploy
 
 
 .PHONY: clean
