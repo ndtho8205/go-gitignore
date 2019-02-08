@@ -1,55 +1,107 @@
 package goignore
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
+)
 
-func IsSupportedTemplates(templates []string) error {
-	if len(Config.SupportedTemplates) == 0 {
-		supportedTemplates, err := GetTemplateList()
+// Templates defines list of suppored templates and saved custom templates.
+type Templates struct {
+	SupportedTemplates []string
+	CustomTemplates    map[string]string
+}
+
+// IsSupportedTemplates checks if input template names is supported by gitignore.io.
+func (templates *Templates) IsSupportedTemplates(inputTemplates ...string) error {
+	if len(templates.SupportedTemplates) == 0 {
+		supportedTemplates, err := Client.GetTemplateList()
 		if err != nil {
 			return err
 		}
-		Config.SupportedTemplates = supportedTemplates
+		templates.SupportedTemplates = supportedTemplates
 	}
 
-	exist := true
-	for _, template := range templates {
-		exist = false
-		for _, supportedTemplate := range Config.SupportedTemplates {
-			if supportedTemplate == template {
-				exist = true
+	for _, inputTemplate := range inputTemplates {
+		isSupported := false
+		for _, supportedTemplate := range Config.Templates.SupportedTemplates {
+			if supportedTemplate == inputTemplate {
+				isSupported = true
 				break
 			}
 		}
-		if !exist {
-			return errors.New("Template " + template + " not supported.")
+		if !isSupported {
+			return errors.New("Template " + inputTemplate + " is not supported.")
 		}
 	}
 
 	return nil
 }
 
-func GetCachedTemplate(template string) (string, error) {
-	return "", nil
-}
-
-func CacheTemplate(template string) error {
-	return nil
-}
-
-func IsCustomTemplates(template string) (bool, error) {
-	if !Config.IsRead {
-		return false, errors.New("Cannot load saved custom templates.")
+// IsCustomTemplate checks if input template name is exist.
+func (templates *Templates) IsCustomTemplate(inputTemplate string) error {
+	if _, exist := Config.Templates.CustomTemplates[inputTemplate]; exist {
+		return nil
 	}
-	if _, err := Config.CustomTemplates[template]; err {
-		return true, nil
+	return errors.New("custom templates not found")
+}
+
+// GetSupportedTemplate uses Client to get .gitignore content given input template names.
+func (templates *Templates) GetSupportedTemplate(inputTemplates ...string) (string, error) {
+	if err := templates.IsSupportedTemplates(inputTemplates...); err != nil {
+		return "", err
 	}
-	return false, errors.New("Custom templates not found.")
+
+	content, err := Client.GetGitignoreContent(strings.Join(inputTemplates, ","))
+	return content, err
 }
 
-func GetCustomTemplate() (string, error) {
-	return "", nil
+// GetCustomTemplate get saved .gitignore content given input template name.
+func (templates *Templates) GetCustomTemplate(inputTemplate string) (string, error) {
+	if err := templates.IsCustomTemplate(inputTemplate); err != nil {
+		return "", err
+	}
+
+	customTemplateFilepath, err := getCustomTemplateFilePath(inputTemplate)
+	if err != nil || !isExist(customTemplateFilepath) {
+		inputTemplates := strings.Split(templates.CustomTemplates[inputTemplate], ",")
+		return templates.GetSupportedTemplate(inputTemplates...)
+	}
+	content, err := ioutil.ReadFile(customTemplateFilepath) // nolint: gosec
+
+	return string(content), err
 }
 
-func SaveCustomTemplate(templateName string, content *string, basedTemplates *string) error {
-	return nil
+// SaveCustomTemplate saves user custom templates.
+func (templates *Templates) SaveCustomTemplate(templateName string, content *string, basedTemplates ...string) error {
+	if templates.CustomTemplates == nil {
+		templates.CustomTemplates = make(map[string]string)
+	}
+	templates.CustomTemplates[templateName] = strings.Join(basedTemplates, ",")
+	templateFilepath, err := getCustomTemplateFilePath(templateName)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(templateFilepath, []byte(*content), 0644)
+	return err
+}
+
+// GetCustomTemplateFilePath gets the custom template file path.
+func getCustomTemplateFilePath(templateFilename string) (string, error) {
+	configDir, err := Config.GetConfigDir()
+	if err != nil {
+		return "", err
+	}
+	customTemplateDir := filepath.Join(configDir, CustomTemplateDirName)
+	if !isExist(customTemplateDir) {
+		if err := os.Mkdir(customTemplateDir, os.ModePerm); err != nil {
+			return "", err
+		}
+	}
+
+	templateFilepath := filepath.Clean(filepath.Join(customTemplateDir, templateFilename))
+
+	return templateFilepath, err
 }

@@ -39,31 +39,37 @@ func (flags *createCommandFlags) Handle() {
 		flags.Usage()
 		return
 	}
-	templates := make([]string, 0)
+
+	inputTemplates := make([]string, 0)
 	for _, template := range fs.Args() {
-		templates = append(templates, strings.Split(strings.TrimSpace(template), ",")...)
+		inputTemplates = append(inputTemplates, strings.Split(strings.TrimSpace(template), ",")...)
 	}
 
-	if err := goignore.IsSupportedTemplates(templates); err != nil {
-		log.Fatal(err)
-	}
-
-	content, err := goignore.GetGitignoreContent(strings.Join(templates, ","))
-
+	content, err := goignore.Config.Templates.GetSupportedTemplate(inputTemplates...)
 	if err != nil {
-		//TODO: Handle error
 		log.Fatal(err)
 	}
-	if err := ioutil.WriteFile("gitignore", []byte(content), 0644); err != nil {
+
+	var filename string
+	if goignore.IsProductionEnvironment() {
+		filename = ".gitignore"
+	} else {
+		filename = "gitignore_dev"
+	}
+
+	if err := ioutil.WriteFile(filename, []byte(content), 0644); err != nil {
 		log.Fatal(err)
+	}
+
+	if flags.customTemplateName != "" {
+		err := goignore.Config.Templates.SaveCustomTemplate(flags.customTemplateName, &content, inputTemplates...)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
 func (flags *createCommandFlags) Usage() {
 	fmt.Printf("usage: goignore %s [list of using templates]:\n", CreateCommand.Name)
 	os.Exit(0)
-}
-
-func isSupportedTemplates(templates []string) {
-
 }

@@ -36,14 +36,19 @@ func (flags *listCommandFlags) Handle() {
 		flags.Usage()
 		return
 	}
-	templateList, err := goignore.GetTemplateList()
-	if err != nil {
-		//TODO: Handle error
-		log.Fatal(err)
+
+	if len(goignore.Config.Templates.SupportedTemplates) == 0 {
+		supportedTemplates, err := goignore.Client.GetTemplateList()
+		if err != nil {
+			log.Fatal(err)
+		}
+		goignore.Config.Templates.SupportedTemplates = supportedTemplates
 	}
-	for _, name := range templateList {
-		fmt.Println(name)
+
+	for _, supportedTemplate := range goignore.Config.Templates.SupportedTemplates {
+		fmt.Println(supportedTemplate)
 	}
+
 }
 
 func (flags *listCommandFlags) Usage() {

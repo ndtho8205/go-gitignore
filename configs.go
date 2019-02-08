@@ -2,114 +2,98 @@ package goignore
 
 import (
 	"encoding/json"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 )
 
 const (
-	ConfigDirName         = ".goignore"
-	ConfigFileName        = "config.json"
+	// ConfigDirName is the default config directory.
+	ConfigDirName = ".goignore"
+
+	// ConfigFileName is the default config filename.
+	ConfigFileName = "config.json"
+
+	// CustomTemplateDirName is the default directory name where custom template will be cached.
 	CustomTemplateDirName = "customs"
-	CachedTemplateDirName = "cached"
 )
 
+// Configuration defines app configuration.
 type Configuration struct {
-	FirstTimeRun       bool `json:"-"`
-	IsRead             bool `json:"-"`
-	LastUpdated        string
-	SupportedTemplates []string
-	CustomTemplates    map[string]string
+	LastUpdated string
+	Templates   Templates
 }
 
+// Config is the global config variable.
 var Config = Configuration{}
 
+// Read reads latest app configuration saved.
 func (config *Configuration) Read() error {
-	config.IsRead = false
-	filePath, err := getConfigFilePath()
+	configFilepath, err := config.GetConfigFilePath()
 	if err != nil {
 		return err
 	}
-	if config.FirstTimeRun {
-		return nil
+
+	if isExist(configFilepath) {
+		configContent, _ := ioutil.ReadFile(configFilepath) // nolint: gosec
+		if err := json.Unmarshal(configContent, config); err != nil {
+			return err
+		}
 	}
-	configContent, _ := ioutil.ReadFile(filePath)
-	if err := json.Unmarshal(configContent, config); err != nil {
-		return err
-	}
-	config.IsRead = true
+
 	return nil
 }
 
+// Save saves current configuration to file.
 func (config *Configuration) Save() error {
-	filePath, err := getConfigFilePath()
+	configFilepath, err := config.GetConfigFilePath()
 	if err != nil {
 		return err
 	}
+
 	configNewContent, err := json.Marshal(config)
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(filePath, configNewContent, 0644)
+	err = ioutil.WriteFile(configFilepath, configNewContent, 0644)
+
 	return err
 }
 
-func getConfigFilePath() (string, error) {
-	configDir, err := getConfigDir()
+// GetConfigFilePath gets the default config file path.
+func (config *Configuration) GetConfigFilePath() (string, error) {
+	configDir, err := config.GetConfigDir()
 	if err != nil {
 		return "", err
 	}
-	configFile := filepath.Join(configDir, ConfigFileName)
-	return configFile, err
+
+	configFilePath := filepath.Join(configDir, ConfigFileName)
+
+	return filepath.Clean(configFilePath), err
 }
 
-func getConfigDir() (string, error) {
-	home, err := getHomeDir()
-	if err != nil {
-		return "", err
+// GetConfigDir gets the default config directory.
+func (config *Configuration) GetConfigDir() (string, error) {
+	var configDir string
+	if IsProductionEnvironment() {
+		home, err := getHomeDir()
+		if err != nil {
+			return "", err
+		}
+		configDir = filepath.Join(home, ConfigDirName)
+	} else {
+		currentDirectory, err := os.Getwd()
+		if err != nil {
+			return "", err
+		}
+		configDir = filepath.Join(currentDirectory, ConfigDirName)
 	}
-	configDir := filepath.Join(home, ConfigDirName)
-	if _, err := os.Stat(configDir); os.IsNotExist(err) {
-		Config.FirstTimeRun = true
+
+	if !isExist(configDir) {
 		if err := os.Mkdir(configDir, os.ModePerm); err != nil {
 			return "", err
 		}
 	}
-	return configDir, nil
-}
 
-func getHomeDir() (string, error) {
-	switch runtime.GOOS {
-	case "windows":
-		return getWindowsHomeDir()
-	case "linux":
-		return getLinuxHomeDir()
-	default:
-		return "", errors.New("Cannot find the home directory")
-	}
-}
-
-func getWindowsHomeDir() (string, error) {
-	if home := os.Getenv("HOME"); home != "" {
-		return home, nil
-	}
-	if home := os.Getenv("USERPROFILE"); home != "" {
-		return home, nil
-	}
-
-	if home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH"); home != "" {
-		return home, nil
-	}
-
-	return "", errors.New("Cannot find the home directory.")
-}
-
-func getLinuxHomeDir() (string, error) {
-	// FIXME: Test on Linux  & Mac
-	if home := os.Getenv("HOME"); home != "" {
-		return home, nil
-	}
-	return "", errors.New("Cannot find the home directory.")
+	return filepath.Clean(configDir), nil
 }

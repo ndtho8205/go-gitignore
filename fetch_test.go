@@ -15,7 +15,7 @@ func TestMakeRequest_Ok(t *testing.T) {
 	})
 	server := httptest.NewServer(mux)
 
-	response, err := MakeRequest(server.URL)
+	response, err := NewAPIClient().MakeRequest(server.URL)
 	if err != nil {
 		t.Fatalf("MakeRequest(): %v", err)
 	}
@@ -32,14 +32,14 @@ func TestMakeRequest_WrongUrl(t *testing.T) {
 	})
 	server := httptest.NewServer(mux)
 
-	_, err := MakeRequest(server.URL + "/goignore")
+	_, err := NewAPIClient().MakeRequest(server.URL + "/goignore")
 	if err != nil {
 		t.Fatalf("MakeRequest(): %v", err)
 	}
 }
 
 func TestGetTemplateList(t *testing.T) {
-	templateList, err := GetTemplateList()
+	templateList, err := NewAPIClient().GetTemplateList()
 	if err != nil {
 		t.Fatalf("GetTemplateList(): %v", err)
 	}
@@ -49,7 +49,7 @@ func TestGetTemplateList(t *testing.T) {
 }
 
 func TestGetGitignoreContent_Ok(t *testing.T) {
-	content, err := GetGitignoreContent("go,android")
+	content, err := NewAPIClient().GetGitignoreContent("go,android")
 	if err != nil {
 		t.Fatalf("GetGitignoreContent(): %v", err)
 	}
@@ -60,7 +60,7 @@ func TestGetGitignoreContent_Ok(t *testing.T) {
 }
 
 func TestGetGitignoreContent_WrongTemplates(t *testing.T) {
-	_, err := GetGitignoreContent("go ignore")
+	_, err := NewAPIClient().GetGitignoreContent("go ignore")
 	if err == nil {
 		t.Fatalf("GetGitignoreContent(): %v", err)
 	}
