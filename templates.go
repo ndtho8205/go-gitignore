@@ -42,10 +42,47 @@ func (templates *Templates) IsSupportedTemplates(inputTemplates ...string) error
 
 // IsCustomTemplate checks if input template name is exist.
 func (templates *Templates) IsCustomTemplate(inputTemplate string) error {
-	if _, exist := templates.CustomTemplates[inputTemplate]; exist {
-		return nil
+	if len(inputTemplate) > 1 && inputTemplate[0] == '@' {
+		if _, exist := templates.CustomTemplates[inputTemplate[1:]]; exist {
+			return nil
+		}
 	}
 	return errors.New("custom templates not found")
+}
+
+// PreprocessInputTemplates preprocess the input.
+func (templates *Templates) PreprocessInputTemplates(inputTemplates ...string) []string {
+	if len(inputTemplates) <= 1 {
+		return inputTemplates
+	}
+
+	duplicate := make(map[string]bool)
+	checkedInputTemplates := make([]string, 0, len(inputTemplates))
+
+	for _, inputTemplate := range inputTemplates {
+		if templates.IsCustomTemplate(inputTemplate) == nil {
+			basedTemplates := strings.Split(templates.CustomTemplates[inputTemplate[1:]], ",")
+			for _, basedTemplate := range basedTemplates {
+				duplicate[basedTemplate] = true
+			}
+		} else {
+			duplicate[inputTemplate] = true
+		}
+	}
+	for k := range duplicate {
+		checkedInputTemplates = append(checkedInputTemplates, k)
+	}
+
+	return checkedInputTemplates
+}
+
+// GetTemplate gets supported and custom templates
+func (templates *Templates) GetTemplate(inputTemplates ...string) (string, error) {
+	if len(inputTemplates) <= 1 && templates.IsCustomTemplate(inputTemplates[0]) == nil {
+		return templates.GetCustomTemplate(inputTemplates[0])
+	}
+
+	return templates.GetSupportedTemplate(inputTemplates...)
 }
 
 // GetSupportedTemplate uses Client to get .gitignore content given input template names.
@@ -63,6 +100,8 @@ func (templates *Templates) GetCustomTemplate(inputTemplate string) (string, err
 	if err := templates.IsCustomTemplate(inputTemplate); err != nil {
 		return "", err
 	}
+
+	inputTemplate = inputTemplate[1:]
 
 	customTemplateFilepath, err := getCustomTemplateFilePath(inputTemplate)
 	if err != nil || !isExist(customTemplateFilepath) {

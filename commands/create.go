@@ -44,8 +44,9 @@ func (flags *createCommandFlags) Handle() {
 	for _, template := range fs.Args() {
 		inputTemplates = append(inputTemplates, strings.Split(strings.TrimSpace(template), ",")...)
 	}
+	inputTemplates = goignore.Config.Templates.PreprocessInputTemplates(inputTemplates...)
 
-	content, err := goignore.Config.Templates.GetSupportedTemplate(inputTemplates...)
+	content, err := goignore.Config.Templates.GetTemplate(inputTemplates...)
 	if err != nil {
 		log.Fatal(err)
 	}
