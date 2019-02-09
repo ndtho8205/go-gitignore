@@ -26,7 +26,7 @@ func (templates *Templates) IsSupportedTemplates(inputTemplates ...string) error
 
 	for _, inputTemplate := range inputTemplates {
 		isSupported := false
-		for _, supportedTemplate := range Config.Templates.SupportedTemplates {
+		for _, supportedTemplate := range templates.SupportedTemplates {
 			if supportedTemplate == inputTemplate {
 				isSupported = true
 				break
@@ -42,7 +42,7 @@ func (templates *Templates) IsSupportedTemplates(inputTemplates ...string) error
 
 // IsCustomTemplate checks if input template name is exist.
 func (templates *Templates) IsCustomTemplate(inputTemplate string) error {
-	if _, exist := Config.Templates.CustomTemplates[inputTemplate]; exist {
+	if _, exist := templates.CustomTemplates[inputTemplate]; exist {
 		return nil
 	}
 	return errors.New("custom templates not found")
@@ -96,8 +96,8 @@ func getCustomTemplateFilePath(templateFilename string) (string, error) {
 	}
 	customTemplateDir := filepath.Join(configDir, CustomTemplateDirName)
 	if !isExist(customTemplateDir) {
-		if err := os.Mkdir(customTemplateDir, os.ModePerm); err != nil {
-			return "", err
+		if errMkdir := os.Mkdir(customTemplateDir, os.ModePerm); err != nil {
+			return "", errMkdir
 		}
 	}
 

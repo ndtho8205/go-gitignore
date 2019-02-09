@@ -7,7 +7,6 @@ import (
 // Flags defines subcommand's flags.
 type Flags interface {
 	Apply() *flag.FlagSet
-
 	Handle()
 	Usage()
 }
