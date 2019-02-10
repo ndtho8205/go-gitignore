@@ -34,7 +34,7 @@ test: lint ## Test
 	@go test $(PKGS)
 
 
-build = $GOOS=$(1) GOARCH=$(2) go build -o $(BUILDDIR)/$(BINARY)-$(VERSION)-$(1)-$(2)$(3) ./cmd/goignore
+build = $GOOS=$(1) GOARCH=$(2) go build -ldflags "-s -w" -o $(BUILDDIR)/$(BINARY)-$(VERSION)-$(1)-$(2)$(3) ./cmd/goignore
 
 linux: build/linux
 build/linux:

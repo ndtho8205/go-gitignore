@@ -48,7 +48,7 @@ goignore list -custom Py
 - [x] Save user templates
 - [x] Create .gitignore from user templates
 - [x] Prettyprint list of templates
-- [x] List templates by pattern
+- [x] List templates with pattern
 - [ ] Create .gitignore file using templates selection (CLI)
 - [ ] Recommend templates
 - [ ] Update templates
