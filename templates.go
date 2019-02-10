@@ -50,32 +50,6 @@ func (templates *Templates) IsCustomTemplate(inputTemplate string) error {
 	return errors.New("custom templates not found")
 }
 
-// PreprocessInputTemplates preprocess the input.
-func (templates *Templates) PreprocessInputTemplates(inputTemplates ...string) []string {
-	if len(inputTemplates) <= 1 {
-		return inputTemplates
-	}
-
-	duplicate := make(map[string]bool)
-	checkedInputTemplates := make([]string, 0, len(inputTemplates))
-
-	for _, inputTemplate := range inputTemplates {
-		if templates.IsCustomTemplate(inputTemplate) == nil {
-			basedTemplates := strings.Split(templates.CustomTemplates[inputTemplate[1:]], ",")
-			for _, basedTemplate := range basedTemplates {
-				duplicate[basedTemplate] = true
-			}
-		} else {
-			duplicate[inputTemplate] = true
-		}
-	}
-	for k := range duplicate {
-		checkedInputTemplates = append(checkedInputTemplates, k)
-	}
-
-	return checkedInputTemplates
-}
-
 // GetTemplate gets supported and custom templates
 func (templates *Templates) GetTemplate(inputTemplates ...string) (string, error) {
 	if len(inputTemplates) <= 1 && templates.IsCustomTemplate(inputTemplates[0]) == nil {
@@ -125,6 +99,41 @@ func (templates *Templates) SaveCustomTemplate(templateName string, content *str
 	}
 	err = ioutil.WriteFile(templateFilepath, []byte(*content), 0644)
 	return err
+}
+
+// FilterPattern searches in supported and custom templates given pattern.
+func (templates *Templates) FilterPattern(pattern string) ([]string, []string) {
+	if pattern == "" {
+		return templates.SupportedTemplates, templates.getCustomTemplatesList()
+	}
+
+	filteredSupportedTemplates := make([]string, 0, 0)
+	if pattern[0] != '@' {
+		for _, template := range templates.SupportedTemplates {
+			if strings.HasPrefix(template, pattern) {
+				filteredSupportedTemplates = append(filteredSupportedTemplates, template)
+			}
+		}
+	}
+
+	filteredCustomTemplates := make([]string, 0, 0)
+	if pattern[0] == '@' {
+		pattern = pattern[1:]
+	}
+	for template := range templates.CustomTemplates {
+		if strings.HasPrefix(template, pattern) {
+			filteredCustomTemplates = append(filteredCustomTemplates, "@"+template)
+		}
+	}
+	return filteredSupportedTemplates, filteredCustomTemplates
+}
+
+func (templates *Templates) getCustomTemplatesList() []string {
+	customTemplates := make([]string, 0, len(templates.CustomTemplates))
+	for k := range templates.CustomTemplates {
+		customTemplates = append(customTemplates, k)
+	}
+	return customTemplates
 }
 
 // GetCustomTemplateFilePath gets the custom template file path.

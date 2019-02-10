@@ -44,7 +44,7 @@ func (flags *createCommandFlags) Handle() {
 	for _, template := range fs.Args() {
 		inputTemplates = append(inputTemplates, strings.Split(strings.TrimSpace(template), ",")...)
 	}
-	inputTemplates = goignore.Config.Templates.PreprocessInputTemplates(inputTemplates...)
+	inputTemplates = preprocessInputTemplates(inputTemplates...)
 
 	content, err := goignore.Config.Templates.GetTemplate(inputTemplates...)
 	if err != nil {
@@ -73,4 +73,32 @@ func (flags *createCommandFlags) Handle() {
 func (flags *createCommandFlags) Usage() {
 	fmt.Printf("usage: goignore %s [list of using templates]:\n", CreateCommand.Name)
 	os.Exit(0)
+}
+
+// PreprocessInputTemplates preprocess the input.
+func preprocessInputTemplates(inputTemplates ...string) []string {
+	if len(inputTemplates) <= 1 {
+		return inputTemplates
+	}
+
+	templates := &goignore.Config.Templates
+
+	duplicate := make(map[string]bool)
+	checkedInputTemplates := make([]string, 0, len(inputTemplates))
+
+	for _, inputTemplate := range inputTemplates {
+		if templates.IsCustomTemplate(inputTemplate) == nil {
+			basedTemplates := strings.Split(templates.CustomTemplates[inputTemplate[1:]], ",")
+			for _, basedTemplate := range basedTemplates {
+				duplicate[basedTemplate] = true
+			}
+		} else {
+			duplicate[inputTemplate] = true
+		}
+	}
+	for k := range duplicate {
+		checkedInputTemplates = append(checkedInputTemplates, k)
+	}
+
+	return checkedInputTemplates
 }
